@@ -1,5 +1,7 @@
 import sys
 import argparse
+import os
+import ConfigParser
 
 
 def create_argument_object():
@@ -77,6 +79,12 @@ def add_argument_object(parser):
     )
 
     parser.add_argument(
+        '--no-backup',
+        action='count',
+        help='remove without backup mechanism'
+    )
+
+    parser.add_argument(
         '-v', '--verbose',
         action='count',
         help='explain what is being done'
@@ -91,16 +99,32 @@ def add_argument_object(parser):
     parser.add_argument(
         'filename',
         action='store',
-        nargs='+'
+        nargs='*'
     )
     return parser
+
+
+def process_arg(arguments):
+
+    if arguments.version is not None:   # user want to show version
+        print(open('./resources/argument-object/version.txt').read())
+        return
+
+    if not arguments.filename:   # list file is empty
+        print("rm: missing operand\nTry 'rm -h\--help' for more information.")
+    else:
+        for fname in arguments.filename:
+            if not os.path.exists(fname):   # path not exist
+                print(("btrm: can not remove '{0}': no such "
+                       "file or directory").format(fname))
 
 
 def main():
     parser = create_argument_object()
     parser = add_argument_object(parser)
-    arguments = parser.parse_args()
-    print(arguments)
+    namespace_arguments = parser.parse_args()
+    print(namespace_arguments)
+    process_arg(namespace_arguments)
     return
 
 
