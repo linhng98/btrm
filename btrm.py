@@ -1,7 +1,9 @@
 import sys
 import argparse
-import os
 import ConfigParser
+import os
+from os import path
+from os.path import expanduser
 
 
 def create_argument_object():
@@ -104,27 +106,57 @@ def add_argument_object(parser):
     return parser
 
 
-def process_arg(arguments):
+def process_config(config_path):
+    # parse config from file
+    config = ConfigParser.ConfigParser()
+    config.read(config_path)
 
-    if arguments.version is not None:   # user want to show version
+    # check if recycle bin exist or not, if not then generate new
+    recycle_path = expanduser(config.get('common', 'recyclebin_path'))
+    print(recycle_path)
+    if not os.path.isdir(recycle_path):
+        os.mkdir(recycle_path)
+        os.mkdir(recycle_path + '/trash')
+        os.mkdir(recycle_path + '/trash-info')
+
+    if not os.path.isdir(recycle_path + '/trash'):
+        os.mkdir(recycle_path + '/trash')
+
+    if not os.path.isdir(recycle_path + '/trash-info'):
+        os.mkdir(recycle_path + '/trash-info')
+
+    return config
+
+
+def process_arg(arguments, config):
+
+    if arguments.version is not None:   # show version then exit
         print(open('./resources/argument-object/version.txt').read())
         return
 
-    if not arguments.filename:   # list file is empty
-        print("rm: missing operand\nTry 'rm -h\--help' for more information.")
+    if not arguments.filename:          # list file is empty
+        print("btrm: missing operand\n"
+              "Try 'btrm -h\--help' for more information.")
     else:
         for fname in arguments.filename:
-            if not os.path.exists(fname):   # path not exist
+            path_name = expanduser(fname)   # recognize tidle(~) sign in unix
+            if not path.exists(path_name):      # path not exist
                 print(("btrm: can not remove '{0}': no such "
-                       "file or directory").format(fname))
+                       "file or directory.").format(fname))
+            else:
+                if path.ismount(path_name):     # check is mountpoint
+                    print("can not remove '{0}'(mount point).".format(fname))
+                elif fname == '/':              # check is root file system
+                    print("can not remove '/'(root file system).")
 
 
 def main():
     parser = create_argument_object()
     parser = add_argument_object(parser)
     namespace_arguments = parser.parse_args()
-    print(namespace_arguments)
-    process_arg(namespace_arguments)
+
+    config = process_config('./config/btrm.conf')
+    process_arg(namespace_arguments, config)
     return
 
 
