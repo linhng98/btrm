@@ -62,7 +62,7 @@ def add_argument_object(parser):
     )
 
     parser.add_argument(
-        '--wipe-everything',
+        '--wipe-all',
         action='count',
         help='complete delete everything from recycle bin, free disk space'
     )
@@ -90,6 +90,13 @@ def full_path(path_X):
 # check path_X is subdir of path_Y or not
 def check_is_subdir(path_X, path_Y):
     if path.commonprefix([path_X, path_Y]) == path_Y:
+        return True
+    return False
+
+
+def check_is_hidden_name(name):
+    temp = name.split('.')
+    if not temp[0]:
         return True
     return False
 
@@ -175,10 +182,14 @@ def remove_file(arguments, config):
         temp = path.basename(path_name)
         base_file = temp
         count = 0
+        hide = check_is_hidden_name(temp)
         while base_file in list_trashs:
             count = count + 1
             arr = temp.split('.')
-            arr.insert(0, str(count))
+            if hide is True:
+                arr.insert(1, str(count))
+            else:
+                arr.insert(0, str(count))
             base_file = '.'.join(arr)
 
         # remove---------------------------------------------------------------
@@ -239,7 +250,7 @@ def process_arg(arguments, config):
                 config.get('default', 'recyclebin_path')) + '/trashs'))
         return
 
-    if arguments.wipe_everything:
+    if arguments.wipe_all:
         recycle_path = full_path(config.get('default', 'recyclebin_path'))
         wipe_recycle_bin(recycle_path)
         return
