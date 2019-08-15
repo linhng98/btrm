@@ -1,9 +1,10 @@
 import sys
 import argparse
 import ConfigParser
+from datetime import datetime
 import os
+import shutil
 from os import path
-from os.path import expanduser
 
 
 def create_argument_object():
@@ -23,49 +24,17 @@ def create_argument_object():
 
 
 def add_argument_object(parser):
-    parser.add_argument(
-        '-f', '--force',
-        action='count',
-        help='ignore nonexistent files and arguments, never prompt'
-    )
 
     parser.add_argument(
         '-i',
         action='count',
-        help='prompt before every removal'
+        help='prompt before removal (default)'
     )
 
     parser.add_argument(
-        '-I',
+        '-f', '--force',
         action='count',
-        help='''prompt once before removing more than three files, or
-                when removing recursively; less intrusive than -i,
-                while still giving protection against most mistakes'''
-    )
-
-    parser.add_argument(
-        '--interactive',
-        action='store',
-        choices=['once', 'never', 'always'],
-        default='always',
-        help='''prompt according to WHEN: never, once (-I), or
-                always (-i); without WHEN, prompt always'''
-    )
-
-    parser.add_argument(
-        '--one-file-system',
-        action='count',
-        help='''when removing a hierarchy recursively, skip any
-                directory that is on a file system different from
-                that of the corresponding command line argument'''
-    )
-
-    parser.add_argument(
-        '--preserve-root',
-        action='store',
-        choices=['yes', 'no'],
-        default='yes',
-        help="do not remove '/'(root directory) (default)"
+        help='force delete without promt'
     )
 
     parser.add_argument(
@@ -75,79 +44,217 @@ def add_argument_object(parser):
     )
 
     parser.add_argument(
-        '-d', '--dir',
-        action='count',
-        help=' remove empty directories'
-    )
-
-    parser.add_argument(
         '--no-backup',
         action='count',
-        help='remove without backup mechanism'
+        help='remove without backup mechanism (can not recover later)'
     )
 
     parser.add_argument(
-        '-v', '--verbose',
+        '--recover',
         action='count',
-        help='explain what is being done'
+        help='recover file from trash'
     )
 
     parser.add_argument(
-        '--version',
+        '--list-trash',
         action='count',
-        help='output version information and exit'
+        help='show list deleted file, sort by date time'
+    )
+
+    parser.add_argument(
+        '--wipe-everything',
+        action='count',
+        help='complete delete everything from recycle bin, free disk space'
+    )
+
+    parser.add_argument(
+        '-v', '--version',
+        action='count',
+        help='show version information and exit'
     )
 
     parser.add_argument(
         'filename',
         action='store',
-        nargs='*'
+        nargs='*',
+        help='directory or file you want to delete'
     )
     return parser
 
 
-def process_config(config_path):
+# get absolute path
+def full_path(path_X):
+    return path.abspath(path.expanduser(path_X))
+
+
+# check path_X is subdir of path_Y or not
+def check_is_subdir(path_X, path_Y):
+    if path.commonprefix([path_X, path_Y]) == path_Y:
+        return True
+    return False
+
+
+def wipe_recycle_bin(recycle_path):
+    for fname in os.listdir(recycle_path):
+        file_path = path.join(recycle_path, fname)
+        if path.isdir(file_path):
+            shutil.rmtree(file_path)
+        else:
+            os.remove(file_path)
+    return
+
+
+def parse_config_file(config_path):
     # parse config from file
     config = ConfigParser.ConfigParser()
     config.read(config_path)
 
     # check if recycle bin exist or not, if not then generate new
-    recycle_path = expanduser(config.get('common', 'recyclebin_path'))
-    print(recycle_path)
+    recycle_path = full_path(config.get('default', 'recyclebin_path'))
     if not os.path.isdir(recycle_path):
         os.mkdir(recycle_path)
-        os.mkdir(recycle_path + '/trash')
-        os.mkdir(recycle_path + '/trash-info')
+        os.mkdir(recycle_path + '/trashs')
+        os.mkdir(recycle_path + '/info')
 
-    if not os.path.isdir(recycle_path + '/trash'):
-        os.mkdir(recycle_path + '/trash')
+    if not os.path.isdir(recycle_path + '/trashs'):
+        os.mkdir(recycle_path + '/trashs')
 
-    if not os.path.isdir(recycle_path + '/trash-info'):
-        os.mkdir(recycle_path + '/trash-info')
+    if not os.path.isdir(recycle_path + '/info'):
+        os.mkdir(recycle_path + '/info')
 
     return config
 
 
+def remove_file(arguments, config):
+    # get all config info
+    recycle_path = full_path(config.get('default', 'recyclebin_path'))
+
+    # get list existed trash in recycle bin
+    list_trashs = os.listdir(recycle_path + "/trashs/")
+
+    for fname in arguments.filename:
+        path_name = full_path(fname)  # recognize tidle(~) sign in unix
+
+        # ------------------------- COMMON ERROR ------------------------------
+        if not path.exists(path_name):      # path not exist
+            print(("btrm: can not remove '{0}': no such "
+                   "file or directory.").format(fname))
+            continue
+
+        if path.ismount(path_name):     # check is mountpoint
+            print("btrm: can not remove '{0}'(mount point).".format(fname))
+            continue
+
+        if check_is_subdir(recycle_path, path_name):  # check subdir
+            print("btrm: can not remove '{0}': "
+                  "{1} is subdirectory of {0}."
+                  .format(path_name, recycle_path))
+            continue
+
+        if path.isdir(path_name) and arguments.recursive is None:
+            print(
+                "btrm: cannot remove '{0}': Is a directory".format(path_name))
+            continue
+
+        if arguments.force is None:     # verify remove process
+            char = str(raw_input(
+                "do you want to remove '{0}' (y/n): ".format(path_name)))
+            if char != 'y':
+                continue
+
+        # -------------------------------------------------------------------
+
+        if arguments.no_backup:     # no backup, complete remove from disk
+            if path.isdir(path_name):
+                shutil.rmtree(path_name)
+            else:
+                os.remove(path_name)
+            continue
+
+        # prevent duplicate trash name in trash folder-----------------------
+        temp = path.basename(path_name)
+        base_file = temp
+        count = 0
+        while base_file in list_trashs:
+            count = count + 1
+            arr = temp.split('.')
+            arr.insert(0, str(count))
+            base_file = '.'.join(arr)
+
+        # remove---------------------------------------------------------------
+        os.renames(path_name, recycle_path + '/trashs/{0}'.format(base_file))
+
+        # write info-----------------------------------------------------------
+        current_time = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        form_trash_info = """[Trash Info]\nOldPath={0}\nDeletionDateTime={1}"""
+        wfile = open(recycle_path +
+                     '/info/{0}.trashinfo'.format(base_file), 'w')
+        wfile.write(form_trash_info.format(path_name, current_time))
+
+    return
+
+
+def recover_file(arguments, config):
+    # get all config info
+    recycle_path = full_path(config.get('default', 'recyclebin_path'))
+
+    # get list existed trash in recycle bin
+    list_trashs = os.listdir(recycle_path + '/trashs/')
+
+    for fname in arguments.filename:
+        if fname not in list_trashs:
+            print("btrm: can not recover '{0}': "
+                  "file not in recycle bin".format(fname))
+            continue
+
+        trash_info_path = recycle_path + '/info/' + fname + '.trashinfo'
+        trash_path = recycle_path + '/trashs/' + fname
+
+        trash_info = ConfigParser.ConfigParser()
+        trash_info.read(trash_info_path)
+        old_path = trash_info.get('Trash Info', 'OldPath')
+
+        if path.exists(old_path):       # check if path exists, warning
+            char = str(raw_input("path '{0}' existing, "
+                                 "allow overwrite? (y/n): ".format(old_path)))
+            if char != 'y':
+                continue
+        os.renames(trash_path, old_path)
+        os.remove(trash_info_path)
+        if not path.exists(recycle_path + '/trashs/'):
+            shutil.rmtree(recycle_path + '/info/')
+
+    return
+
+
 def process_arg(arguments, config):
 
-    if arguments.version is not None:   # show version then exit
+    if arguments.version:   # show version then exit
         print(open('./resources/argument-object/version.txt').read())
+        return
+
+    if arguments.list_trash:    # show all removed file
+        os.system(
+            'ls -la {0}'.format(full_path(
+                config.get('default', 'recyclebin_path')) + '/trashs'))
+        return
+
+    if arguments.wipe_everything:
+        recycle_path = full_path(config.get('default', 'recyclebin_path'))
+        wipe_recycle_bin(recycle_path)
         return
 
     if not arguments.filename:          # list file is empty
         print("btrm: missing operand\n"
               "Try 'btrm -h\--help' for more information.")
-    else:
-        for fname in arguments.filename:
-            path_name = expanduser(fname)   # recognize tidle(~) sign in unix
-            if not path.exists(path_name):      # path not exist
-                print(("btrm: can not remove '{0}': no such "
-                       "file or directory.").format(fname))
-            else:
-                if path.ismount(path_name):     # check is mountpoint
-                    print("can not remove '{0}'(mount point).".format(fname))
-                elif fname == '/':              # check is root file system
-                    print("can not remove '/'(root file system).")
+        return
+
+    if arguments.recover:   # user want to recover file
+        recover_file(arguments, config)
+    else:                               # user want to delete file
+        remove_file(arguments, config)
+
+    return
 
 
 def main():
@@ -155,7 +262,7 @@ def main():
     parser = add_argument_object(parser)
     namespace_arguments = parser.parse_args()
 
-    config = process_config('./config/btrm.conf')
+    config = parse_config_file('./config/btrm.conf')
     process_arg(namespace_arguments, config)
     return
 

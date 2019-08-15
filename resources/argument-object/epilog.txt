@@ -7,6 +7,7 @@ use one of these commands:
 
   rm ./-foo
 
-Note that if you use btrm to remove a file, it might be possible to recover some 
-of its contents within 60 days, given sufficient expertise and/or time. For greater
-assurance that the contents are truly unrecoverable, consider using shred.
+Note that if you use btrm to remove a file, it always be possible to recover all 
+of its contents within 60 days, looking for deleted file at trash directory and
+and use --recover options to recover whatever you want. For greater assurance 
+that the contents are truly unrecoverable, consider using shred.
