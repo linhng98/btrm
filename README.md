@@ -26,6 +26,7 @@
 ```
 pip install --user btrm
 ```
+- add export PATH="$HOME/.local/bin:$PATH" to .bashrc or .zshrc(if your shell is using zsh)
 ---
 ## Configuration
 - Edit default config at ~/.config/btrm.conf
