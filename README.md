@@ -1,6 +1,6 @@
 # Btrm
 ![build status](https://img.shields.io/badge/build-passing-green)
-![python version](https://img.shields.io/badge/python-2.7.16-blue)
+![python version](https://img.shields.io/badge/python-2.7+-blue)
 ![license](https://img.shields.io/badge/license-MIT-red)
 > Alternative tool for rm command in linux using python
 ---
@@ -26,14 +26,14 @@
 ```
 pip install --user btrm
 ```
-- add export PATH="$HOME/.local/bin:$PATH" to .bashrc or .zshrc(if your shell is using zsh)
+- add `export PATH="$HOME/.local/bin:$PATH"` to .bashrc or .zshrc(if your shell is using zsh)
 ---
 ## Configuration
 - Edit default config at ~/.config/btrm.conf
 ---
 ## Usage
 ```
-usage: btrm.py [OPTION]... [FILE]...
+usage: btrm [OPTION]... [FILE]...
 
 Alternative tool for rm command in linux using python
 
@@ -69,10 +69,13 @@ that the contents are truly unrecoverable, consider using shred.
 ---
 ## Example
 - Remove directory xyz and abc
+  
 ![](sources/resources/images/remove_example.png)
 
 - show list removed file
+  
 ![](sources/resources/images/show_list.png)
 
 - recover directory xyz and abc
+  
 ![](sources/resources/images/recover_example.png)
