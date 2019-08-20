@@ -1,10 +1,18 @@
 import sys
 import argparse
-import ConfigParser
 from datetime import datetime
 import os
 import shutil
 from os import path
+import platform
+
+if platform.python_version() > '3':
+    import configparser as ConfigParser
+
+    def raw_input(my_str):
+        return input(my_str)
+else:
+    import ConfigParser
 
 
 def create_argument_object():

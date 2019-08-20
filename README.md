@@ -19,7 +19,8 @@
 - The rm -rf command is one of the fastest way to delete a folder and its contents. But a little typo or ignorance may result into unrecoverable system damage. So we decide to built our alternative tool to remove file but with **backup mechanism**. 
 ---
 ## Requirement
-- python 2.7
+- python 2.7+
+- pip
 ---
 ## Installation
 ```
