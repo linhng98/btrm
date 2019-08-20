@@ -1,6 +1,6 @@
 # Btrm
 ![build status](https://img.shields.io/badge/build-passing-green)
-![python version](https://img.shields.io/badge/python-2.7+-blue)
+![python version](https://img.shields.io/badge/python-2.7.1+-blue)
 ![license](https://img.shields.io/badge/license-MIT-red)
 > Alternative tool for rm command in linux using python
 ---
