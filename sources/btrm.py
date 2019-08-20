@@ -8,11 +8,19 @@ from os import path
 
 
 def create_argument_object():
+    this_path = path.dirname(path.realpath(__file__))
+    usage_txt_path = path.join(
+        this_path, 'resources/argument-object/usage.txt')
+    description_txt_path = path.join(
+        this_path, 'resources/argument-object/description.txt')
+    epilog_txt_path = path.join(
+        this_path, 'resources/argument-object/epilog.txt')
+
     parser = argparse.ArgumentParser(
         prog=None,
-        usage=open('./resources/argument-object/usage.txt').read(),
-        description=open('./resources/argument-object/description.txt').read(),
-        epilog=open('./resources/argument-object/epilog.txt').read(),
+        usage=open(usage_txt_path).read(),
+        description=open(description_txt_path).read(),
+        epilog=open(epilog_txt_path).read(),
         parents=[],
         formatter_class=argparse.RawDescriptionHelpFormatter,
         prefix_chars='-',
@@ -111,8 +119,16 @@ def wipe_recycle_bin(recycle_path):
     return
 
 
-def parse_config_file(config_path):
+def parse_config_file():
     # parse config from file
+
+    # check if user config exist or not
+    if not path.exists(full_path('~/.config/btrm.conf')):
+        this_path = path.dirname(path.realpath(__file__))
+        config_path = full_path(path.join(this_path, 'config/btrm.conf'))
+        shutil.copy(config_path, full_path('~/.config/btrm.conf'))
+
+    config_path = full_path('~/.config/btrm.conf')
     config = ConfigParser.ConfigParser()
     config.read(config_path)
 
@@ -241,12 +257,15 @@ def recover_file(arguments, config):
 def process_arg(arguments, config):
 
     if arguments.version:   # show version then exit
-        print(open('./resources/argument-object/version.txt').read())
+        this_path = path.dirname(path.realpath(__file__))
+        version_txt_path = path.join(
+            this_path, 'resources/argument-object/version.txt')
+        print(open(version_txt_path).read())
         return
 
     if arguments.list_trash:    # show all removed file
         os.system(
-            'ls -la {0}'.format(full_path(
+            "ls -hAlt --color=always {0} | sed -n '1!p'".format(full_path(
                 config.get('default', 'recyclebin_path')) + '/trashs'))
         return
 
@@ -273,7 +292,7 @@ def main():
     parser = add_argument_object(parser)
     namespace_arguments = parser.parse_args()
 
-    config = parse_config_file('./config/btrm.conf')
+    config = parse_config_file()
     process_arg(namespace_arguments, config)
     return
 

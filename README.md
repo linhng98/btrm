@@ -8,6 +8,7 @@
 * [Introduction](#introduction)
 * [Requirement](#requirement)
 * [Installation](#installation)
+* [Configuration](#configuration)
 * [Usage](#usage)
 * [Example](#example)
 * [Contribute](#contributing)
@@ -21,6 +22,12 @@
 - python 2.7
 ---
 ## Installation
+```
+pip install --user btrm
+```
+---
+## Configuration
+- Edit default config at ~/.config/btrm.conf
 ---
 ## Usage
 ```
@@ -39,7 +46,7 @@ optional arguments:
   --no-backup          remove without backup mechanism (can not recover later)
   --recover            recover file from trash
   --list-trash         show list deleted file, sort by date time
-  --wipe-everything    complete delete everything from recycle bin, free disk
+  --wipe-all           complete delete everything from recycle bin, free disk
                        space
   -v, --version        show version information and exit
 
@@ -60,10 +67,10 @@ that the contents are truly unrecoverable, consider using shred.
 ---
 ## Example
 - Remove directory xyz and abc
-![](resources/images/remove_example.png)
+![](sources/resources/images/remove_example.png)
 
 - show list removed file
-![]()
+![](sources/resources/images/show_list.png)
 
 - recover directory xyz and abc
-![](resources/images/recover_example.png)
+![](sources/resources/images/recover_example.png)
